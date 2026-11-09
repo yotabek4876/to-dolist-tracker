@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study Tracker</title>
+<style>
+:root{--b:#0a3d91;--l:#b9d3f0;--a:#0a4fd4}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--b);font-family:Inter,"Segoe UI",Arial,sans-serif;padding:14px 18px 40px;-webkit-tap-highlight-color:transparent}
+#app{display:flex;flex-direction:column}
+.head{order:0}.stats{order:1}.legend{order:2}.cols,.ov{order:3}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;position:sticky;top:0;background:#fff;padding:8px 0;z-index:5}
+.tabs button,.tools button{font:700 14px inherit;font-family:inherit;border:3px solid var(--b);background:#fff;color:var(--b);border-radius:10px;padding:7px 14px;cursor:pointer}
+.tabs button.on{background:var(--b);color:#fff}
+.head{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.title{font-size:54px;line-height:1;font-weight:400;flex:1 1 280px;min-width:0}
+.title b{display:block;font-size:44px;font-weight:900;color:var(--l);-webkit-text-stroke:2px var(--b);letter-spacing:1px}
+.box{border:4px solid var(--b);border-radius:12px;padding:12px 16px;min-width:210px;min-height:86px;font-weight:800;font-size:20px}
+.box small{display:block;font-size:17px;font-weight:800;margin-bottom:8px}
+.logo{width:90px;height:90px;border-radius:50%;background:var(--a);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;line-height:1.1;margin-left:auto}
+.legend{margin:10px 0 24px;font-weight:800;font-size:18px;display:flex;align-items:center;gap:10px}
+.cols{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+.col h3{margin:0;text-align:center;font-size:28px;font-weight:900;color:var(--l);-webkit-text-stroke:1.5px var(--b);letter-spacing:.5px}
+.col .n{text-align:center;font-weight:800;font-size:15px;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(5,30px);gap:10px 9px;justify-content:center;min-height:300px;align-content:start}
+.c{width:30px;height:30px;border-radius:50%;border:3.5px solid var(--b);background:#fff;cursor:pointer;padding:0;transition:.12s;touch-action:manipulation}
+@media(hover:hover){.c:hover{transform:scale(1.12)}}
+.c.f{background:var(--b)}
+.tot{border:4px solid var(--b);border-radius:10px;padding:8px 10px;font-weight:800;font-size:18px;margin-top:14px}
+.tot.done{background:var(--b);color:#fff}
+.stats{margin:16px 0 0;display:flex;gap:14px;flex-wrap:wrap}
+.stat{border:3px solid var(--l);border-radius:12px;padding:10px 16px;font-weight:700}
+.stat span{display:block;font-size:24px;font-weight:900}
+.bar{height:16px;border:3px solid var(--b);border-radius:10px;overflow:hidden;margin:6px 0 4px}
+.bar i{display:block;height:100%;background:var(--b)}
+.ov{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.ov .box{min-height:0}
+.tools{margin-top:26px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px}
+@media(max-width:1179px){.cols{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:799px){.cols{grid-template-columns:repeat(2,minmax(0,1fr))}.title{font-size:44px}.title b{font-size:36px}.grid{min-height:0}.col{margin-bottom:10px}}
+@media(max-width:519px){
+body{padding:8px 12px 40px}
+.tabs{flex-wrap:nowrap;overflow-x:auto;margin:0 -12px 10px;padding:8px 12px;gap:6px}
+.tabs button{flex:0 0 auto;padding:8px 12px;font-size:14px}
+.head{gap:10px}.title{font-size:36px;flex:1 1 0}.title b{font-size:30px;-webkit-text-stroke:1.5px var(--b)}
+.logo{width:62px;height:62px;font-size:13px}
+.box{flex:1 1 130px;min-width:0;padding:8px 12px;min-height:0;font-size:17px;border-width:3px}.box small{font-size:14px;margin-bottom:4px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stat{padding:8px 12px;font-size:13px}.stat span{font-size:17px}
+.legend{margin:12px 0 14px;font-size:15px}
+.cols{grid-template-columns:1fr;gap:18px}
+.col{border:3px solid var(--l);border-radius:14px;padding:10px 8px 12px}
+.col h3{font-size:24px}
+.grid{grid-template-columns:repeat(5,42px);gap:12px;justify-content:center}
+.c{width:42px;height:42px}
+.tot{margin-top:12px;font-size:16px}
+.ov{grid-template-columns:1fr}
+.tools{flex-direction:column;align-items:stretch}.tools button{padding:11px}
+}
+</style>
+</head>
+<body>
+<div class="tabs" id="tabs"></div>
+<div id="app"></div>
+<div class="tools">
+<button onclick="exp()">Zaxira (JSON) yuklab olish</button>
+<button onclick="document.getElementById('imp').click()">Zaxiradan tiklash</button>
+<button onclick="reset()">Hammasini tozalash</button>
+<input id="imp" type="file" accept=".json" hidden onchange="imp(this)">
+<button onclick="sync()">Yangilash</button>
+<span id="status"></span>
+</div>
+<script>
+const T=[
+{k:'listening',n:'Listening',goal:6000,unit:30,u:'minutes',lv:[720,810,1020,1110,1170,1230]},
+{k:'speaking',n:'Speaking',goal:6000,unit:30,u:'minutes',lv:[720,810,1020,1110,1170,1230]},
+{k:'writing',n:'Writing',goal:80,unit:1,u:'essays',lv:[10,10,10,15,15,20]},
+{k:'reading',n:'Reading',goal:5000,unit:30,u:'minutes',lv:[720,720,810,840,900,1020]},
+{k:'vocab',n:'Vocab',goal:1900,unit:10,u:'words',lv:[250,250,300,350,350,400]}];
+const N=['WARRIOR','ELITE','MASTER','EPIC','LEGEND','MYTHIC'];
+const CK='supernova-tracker-v1',QK='tk-queue',AK='tk-key';
+const ls={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+let S={},Q=[],cur='overview',busy=false,again=false;
+try{S=JSON.parse(ls.get(CK))||{}}catch(e){S={}}
+try{Q=JSON.parse(ls.get(QK))||[]}catch(e){Q=[]}
+const save=()=>{ls.set(CK,JSON.stringify(S));ls.set(QK,JSON.stringify(Q))};
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+const cnt=t=>t.lv.map(v=>Math.ceil(v/t.unit));
+const st=t=>S[t.k]||(S[t.k]={});
+const done=t=>Object.keys(st(t)).length*t.unit;
+const todayN=t=>Object.values(st(t)).filter(d=>d===today()).length*t.unit;
+const fmt=(t,v)=>t.u==='minutes'?v+' min ('+(v/60).toFixed(1)+' soat)':v+' '+t.u;
+const setStatus=m=>{const e=document.getElementById('status');if(e)e.textContent=m};
+function apply(op){const s=S[op.k]||(S[op.k]={});if(op.d)s[op.i]=op.d;else delete s[op.i]}
+function tabs(){
+document.getElementById('tabs').innerHTML=[['overview','Umumiy']].concat(T.map(t=>[t.k,t.n])).map(([k,n])=>`<button class="${k===cur?'on':''}" onclick="go('${k}')">${n}</button>`).join('');}
+function go(k){cur=k;render()}
+function toggle(k,i){const t=T.find(x=>x.k===k),s=st(t);const op={k,i,d:s[i]?null:today()};apply(op);Q.push(op);save();render();sync()}
+function render(){
+tabs();const app=document.getElementById('app');
+if(cur==='overview'){
+app.innerHTML='<div class="ov">'+T.map(t=>{const d=done(t),p=Math.min(100,d/t.goal*100);
+return `<div class="box" style="cursor:pointer" onclick="go('${t.k}')"><small>${t.n}</small>${fmt(t,d)} / ${t.goal}<div class="bar"><i style="width:${p}%"></i></div><small style="margin:0">${p.toFixed(1)}% · bugun: ${fmt(t,todayN(t))}</small></div>`}).join('')+'</div>';return}
+const t=T.find(x=>x.k===cur),s=st(t),c=cnt(t);let idx=0;
+const d=done(t);
+app.innerHTML=`<div class="head"><div class="title">${t.n}<b>TRACKER</b></div>
+<div class="box"><small>Goal:</small>${t.goal} ${t.u}</div>
+<div class="box"><small>Achieved:</small>${d} ${t.u}</div>
+<div class="logo">super<br>nova</div></div>
+<div class="legend"><span class="c" style="width:26px;height:26px;display:inline-block;cursor:default"></span> = ${t.unit} ${t.unit===1?'essay':t.u}</div>
+<div class="cols">${t.lv.map((v,li)=>{let h='',f=0;for(let j=0;j<c[li];j++,idx++){const on=!!s[idx];if(on)f++;h+=`<button class="c ${on?'f':''}" title="${on?s[idx]:''}" onclick="toggle('${t.k}',${idx})"></button>`}
+const tv=f*t.unit;return `<div class="col"><h3>${N[li]}</h3><div class="n">${v} ${t.u}</div><div class="grid">${h}</div><div class="tot ${f===c[li]?'done':''}">Total: ${tv}</div></div>`}).join('')}</div>
+<div class="stats"><div class="stat">Bugun<span>${fmt(t,todayN(t))}</span></div><div class="stat">Jami<span>${fmt(t,d)}</span></div><div class="stat">Qoldi<span>${fmt(t,Math.max(0,t.goal-d))}</span></div><div class="stat">Foiz<span>${(Math.min(100,d/t.goal*100)).toFixed(1)}%</span></div></div>`;}
+async function api(method,body){
+let key=ls.get(AK);
+if(!key){key=(prompt('Maxfiy kodni kiriting:')||'').trim();if(!key)throw new Error('kod kiritilmagan');ls.set(AK,key)}
+const r=await fetch('/api/data',{method:method,headers:{'content-type':'application/json','x-tracker-key':key},body:JSON.stringify(body)});
+if(r.status===401){ls.del(AK);throw new Error('kod noto\u2018g\u2018ri, \u201CYangilash\u201D ni bosing')}
+if(!r.ok)throw new Error((await r.text()).slice(0,80)||('xato '+r.status));
+return r.json();
+}
+async function sync(){
+if(busy){again=true;return}
+busy=true;setStatus('\u23F3 Sinxronlanmoqda\u2026');
+const sent=Q.slice();
+try{
+const data=await api('POST',{ops:sent});
+Q=Q.slice(sent.length);S=data;Q.forEach(apply);save();render();
+setStatus('\u2714 Serverga saqlandi '+new Date().toTimeString().slice(0,5));
+}catch(e){
+setStatus(e instanceof TypeError?'\u26A0 Internet yo\u2018q. Belgilar qurilmada, internet kelganda yuboriladi.':'\u26A0 '+e.message);
+}finally{busy=false;if(again){again=false;sync()}}
+}
+async function put(o){
+try{const data=await api('PUT',{state:o});S=data;Q=[];save();render();setStatus('\u2714 Serverga saqlandi '+new Date().toTimeString().slice(0,5))}
+catch(e){alert('Xato: '+e.message)}
+}
+function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='tracker-backup-'+today()+'.json';a.click()}
+function imp(el){const f=el.files[0];if(!f)return;f.text().then(x=>{let o;try{o=JSON.parse(x)}catch(e){alert('Fayl noto\u2018g\u2018ri');return}
+if(!confirm('Serverdagi hozirgi ma\u2019lumot shu zaxira bilan almashtiriladi. Davom etamizmi?'))return;put(o)});el.value=''}
+function reset(){if(prompt('Hamma belgi serverdan ham o\u2018chadi. Davom etish uchun TOZALASH deb yozing:')!=='TOZALASH')return;put({})}
+window.addEventListener('online',sync);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});
+setInterval(()=>{if(!document.hidden)sync()},60000);
+render();sync();
+</script>
+</body>
+</html>
